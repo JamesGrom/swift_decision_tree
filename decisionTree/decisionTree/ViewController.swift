@@ -4,24 +4,103 @@
 //
 //  Created by James Grom on 6/13/21.
 //
-
 import UIKit
-class Node<Type>{
+//attributeType = type of the attribute on which the node sorts its children on
+//valueType = type of the potential values the given attribute can take
+//resultType = type of the result the decision tree will return (eg INT for 1||0 , String for "Male"||"Femle" etc)
+//resultKey, should be static throught nodes, key used to access the result value from an instance
+class templatizedNode <attributeType: Hashable,valueType:Equatable,resultType:Equatable>{
+    var children : [templatizedNode<attributeType,valueType,resultType>] = []
+    weak var parent : templatizedNode<attributeType,valueType,resultType>?
+    //attribute holds the value for which the node sorts its children on (nil for leaf nodes)
+    var attribute: attributeType?
+    //value holds the value of the node (nil for parent nodes)
+    var value: resultType?
+    //key used to access the result value from an instance
+    var resultKey: attributeType
+    //instances holds array of dictionaries, where each dictionary holds an instance state
+    //attributeTypes are casted to strings such that they're hashable when accessing instances
+    var instances: [[attributeType:valueType]] = []
+    
+    //setup initializers
+    //construct a non-leaf node
+    init(attributeSortedOn: attributeType , accessibleInstances: [[attributeType:valueType]] , givenResultKey: attributeType ) {
+        //initialize the result key (should be consistent thru all nodes)
+        self.resultKey = givenResultKey
+        //first test if the node should be a leaf node
+        // leafnode if all instances have the same result value
+        var consistentResults = true
+        var tempResult: resultType?
+        for dictionary in accessibleInstances {
+            if tempResult == nil {
+                //first result encountered, initialize tempresult
+                tempResult = dictionary[resultKey] as? resultType
+            }
+            if tempResult != dictionary[resultKey] as? resultType {
+                consistentResults = false
+                break
+            }
+        }
+        //if results are consistent, initialize a leaf node
+        if consistentResults {
+            //initialize leaf node
+            self.value = tempResult
+        }else{
+            //initialize a parent node
+            self.attribute = attributeSortedOn
+        }
+        self.instances = accessibleInstances
+    }
+    
+    //returns instances where Node's attribute has specified value , nil if empty
+    func findInstances(withAttributeEqualTo: valueType) -> [[attributeType:valueType]]? {
+        //if current node is a leaf just return
+        if let _ = value {
+            return nil
+        }
+        //current node is parent node
+        var relevantInstances : [[attributeType:valueType]]?
+        //add relevant dictionaries
+        for dictionary in instances{
+            if dictionary[attribute!] == withAttributeEqualTo{
+                if relevantInstances == nil {
+                    //add the first dictionary as needed
+                    relevantInstances = [dictionary]
+                }else{
+                    relevantInstances!.append(dictionary)
+                }
+            }
+        }
+        return relevantInstances
+    }
+    
+    //add child node to the current node
+    func addChild(node: templatizedNode){
+        self.children.append(node)
+        node.parent = self
+    }
+}
+
+
+
+class Node{
     // each node is either an attribute node (wherin attribute = string defining the category) || a classification node (either positive or negative)
     // a classification node has a null attribute and an attribute node has a null classification value
-    var attribute: Type?
+    var attribute: String?
     var classification : Bool?
     var instances : [[String:Int]] = []
+    var posBranchNode : Node?
+    var negBranchNode : Node?
     var children: [Node] = []
     //constructor for the node class
-    init (attribute: Type){
+    init (attribute: String){
         self.attribute = attribute
     }
     init(classification: Bool) {
         self.classification = classification
     }
     func printNode(){
-        if let attribute = attribute as? String {
+        if let attribute = attribute {
             print(attribute)
         }
         if let classification = classification {
@@ -218,5 +297,18 @@ class ViewController: UIViewController {
         return -1.0 * pPos * log2(pPos) - pNeg * log2(pNeg)
     }
 
+    func generateDecisionTree(inputDictionaries:[[String:Int]]) -> Node {
+        let returnNode = Node(attribute: "emptyNode")
+        //first, find best attribute to sort on (the one with the highest gain)
+        
+        //generate subset for each possible value of best attribute
+        
+        //for each subset, if the entropy of the set == 0 (created node has all + or all - examples), fabricate a corresponding classification node, else fabricate a node for the subset by generatingDecision tree on the subset
+        
+        
+        
+        return returnNode
+        
+    }
 }
 
