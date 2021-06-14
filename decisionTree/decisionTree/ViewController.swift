@@ -23,7 +23,6 @@ class templatizedNode <attributeType: Hashable,valueType:Equatable,resultType:Eq
     var instances: [[attributeType:valueType]] = []
     
     //setup initializers
-    //construct a non-leaf node
     init(attributeSortedOn: attributeType , accessibleInstances: [[attributeType:valueType]] , givenResultKey: attributeType ) {
         //initialize the result key (should be consistent thru all nodes)
         self.resultKey = givenResultKey
@@ -155,34 +154,34 @@ class ViewController: UIViewController {
                     var temp : [String:Int] = [:]
                     //8 possibilities for height classifications
                     var i = 0;
-                    while(i<8){
-                        //initialize H0-H7 with nil
-                        let tempKey = "H" + String(i)
-                        temp[tempKey] = 0
-                        i = i+1
-                    }
+//                    while(i<8){
+//                        //initialize H0-H7 with nil
+//                        let tempKey = "H" + String(i)
+//                        temp[tempKey] = 0
+//                        i = i+1
+//                    }
                     //14 possibilities for weight classifications
                     i = 0;
-                    while(i<14){
-                        //initialize W0-W13 with nil
-                        let tempKey = "W" + String(i)
-                        temp[tempKey] = 0
-                        i = i+1
-                    }
+//                    while(i<14){
+//                        //initialize W0-W13 with nil
+//                        let tempKey = "W" + String(i)
+//                        temp[tempKey] = 0
+//                        i = i+1
+//                    }
                     //8 possibilities for BMI classifications
                     i = 0;
-                    while(i<8){
-                        let tempKey = "BMI" + String(i)
-                        temp[tempKey] = 0
-                        i = i+1
-                    }
+//                    while(i<8){
+//                        let tempKey = "BMI" + String(i)
+//                        temp[tempKey] = 0
+//                        i = i+1
+//                    }
                     //5 possibilities for fitness index
                     i = 1;
-                    while(i<6){
-                        let tempKey = "I" + String(i)
-                        temp[tempKey] = 0
-                        i = i + 1
-                    }
+//                    while(i<6){
+//                        let tempKey = "I" + String(i)
+//                        temp[tempKey] = 0
+//                        i = i + 1
+//                    }
 
                     //set the Result state
                     if(resultState == "Male"){
@@ -197,8 +196,9 @@ class ViewController: UIViewController {
                     while(i<8){
                         if heightVal < cutoff || cutoff == 190{
                             //set the appropriate field value
-                            let tempKey = "H" + String(i)
-                            temp[tempKey] = 1
+//                            let tempKey = "H" + String(i)
+//                            temp[tempKey] = 1
+                            temp["Height"] = i
                             break
                         }
                         i = i+1
@@ -210,8 +210,9 @@ class ViewController: UIViewController {
                     while(i<14){
                         if weightVal < cutoff || cutoff == 160{
                             //set the appropriate field value
-                            let tempKey = "W" + String(i)
-                            temp[tempKey] = 1
+//                            let tempKey = "W" + String(i)
+//                            temp[tempKey] = 1
+                            temp["Weight"] = i
                             break
                         }
                         i = i+1
@@ -223,8 +224,9 @@ class ViewController: UIViewController {
                     while(i<8){
                         if bmiVal < cutoff || cutoff == 45{
                             //set the appropriate field value
-                            let tempKey = "BMI" + String(i)
-                            temp[tempKey] = 1
+//                            let tempKey = "BMI" + String(i)
+//                            temp[tempKey] = 1
+                            temp["BMI"] = i
                             break
                         }
                         i = i+1
@@ -232,25 +234,50 @@ class ViewController: UIViewController {
                     }
                     
                     //set the fitnessIndex state
-                    let tempKey = "I" + String(fitnessIndex)
-                    temp[tempKey] = 1
-                    
-                    //temp [String:Int?] holds the 1 hot encoded values for the current row
+                    temp["Fitness"] = fitnessIndex
+                    // DEPRICATED: temp [String:Int?] holds the 1 hot encoded values for the current row
                     //add current row into processedValues
                     processedValues.append(temp)
                 }
             }
             
-            print(csv.namedRows)
-            print(parsedValues)
+//            print(csv.namedRows)
+//            print(parsedValues)
             print(processedValues)
         } catch{
             print("catchblock triggered")
             return
         }
-        //at this point, processedValues should have 1 hot encoded list of data such that ID3 can be performed
+        // DEPRICATED: at this point, processedValues should have 1 hot encoded list of data such that ID3 can be performed
         
-    }
+        // processed values now holds the processed [String:Int] dictionaries modeling each instance
+        
+        //now generate training set from first 400 instances, and test set from last 100 instances
+        //leading to an 80:20 split
+        var testValues : [[String:Int]] = []
+        var trainingValues : [[String:Int]] = []
+        var i = 0
+        //add 400 instances to the testValues
+        while (i < 400){
+            //fetch 400 of the processed instances to initialize the test values
+            trainingValues.append(processedValues[i])
+            i = i + 1
+        }
+        i = 400
+        while( i < 500 ){
+            testValues.append(processedValues[i])
+            i = i + 1
+        }
+        
+        //fabricate a placeholder templetized node
+//        var teplatizationNode
+        var tempNode : templatizedNode<String,Int,Int>?
+        
+        //generate the decision tree using the training values set
+//        generateDecisionTree(inputDictionaries: trainingValues)
+        
+        
+     }
     
     //returns array of instances (modeled as dictionaries) for which the attribute has the given attribute state
     func findInstancesOfAttributeState(attributeName:String,attributeState: Int,currentInstances:[[String:Int]]) -> [[String:Int]]{
@@ -267,18 +294,42 @@ class ViewController: UIViewController {
     func findAttributeGain(attributeName:String,currentInstances:[[String:Int]])-> Double{
         //get entropy for the current set
         let setEntropy = findEntropy(currentInstances: currentInstances)
-        let posSubset = findInstancesOfAttributeState(attributeName: attributeName, attributeState: 1, currentInstances: currentInstances)
-        let negSubset = findInstancesOfAttributeState(attributeName: attributeName, attributeState: 0, currentInstances: currentInstances)
-        //assumption is that given attribute has only 2 possible values due to 1 hot encoding
-        let posEntropy = findEntropy(currentInstances: posSubset)
-        let posSubsetSize = Double(posSubset.count)
-        let negEntropy = findEntropy(currentInstances: negSubset)
-        let negSubsetSize = Double(negSubset.count)
         let setSize = Double( currentInstances.count)
-        //perform the summation
-        var summation = posSubsetSize / setSize * posEntropy
-        summation = summation + negSubsetSize / setSize * negEntropy
-        return setEntropy - summation
+        var sum : Double = 0.0
+        var attributeStates : [Int] = []
+        //for each possible value the attribute may assume
+        for dictionary in currentInstances {
+            if let currentAttributeState = dictionary[attributeName] {
+                if !attributeStates.contains(currentAttributeState){
+                    //add the attribute state to the seen attributeStates
+                    attributeStates.append(currentAttributeState)
+                    //  generate the set where the attribute assumes the value
+                    let currentSubset = findInstancesOfAttributeState(attributeName: attributeName, attributeState: currentAttributeState, currentInstances: currentInstances)
+                    //compute the entropy on the set
+                    let tempEntropy = findEntropy(currentInstances: currentSubset)
+                    //      compute the size of the set
+                    let tempSetSize = currentSubset.count
+                    //      perform subsetSize / setSize * subsetEntropy
+                    //      add to sum
+                    sum = sum + ((Double(tempSetSize) / setSize)*tempEntropy)
+                }
+            }
+        }
+        //return the gain
+        return setEntropy - sum
+//
+//        let posSubset = findInstancesOfAttributeState(attributeName: attributeName, attributeState: 1, currentInstances: currentInstances)
+//        let negSubset = findInstancesOfAttributeState(attributeName: attributeName, attributeState: 0, currentInstances: currentInstances)
+//        //assumption is that given attribute has only 2 possible values due to 1 hot encoding
+//        let posEntropy = findEntropy(currentInstances: posSubset)
+//        let posSubsetSize = Double(posSubset.count)
+//        let negEntropy = findEntropy(currentInstances: negSubset)
+//        let negSubsetSize = Double(negSubset.count)
+//
+//        //perform the summation
+//        var summation = posSubsetSize / setSize * posEntropy
+//        summation = summation + negSubsetSize / setSize * negEntropy
+//        return setEntropy - summation
     }
 
     
@@ -310,5 +361,63 @@ class ViewController: UIViewController {
         return returnNode
         
     }
+    
+    
+    func genDecisionTree(inputInstances: [[String:Int]]) -> templatizedNode<String, Int, Int>? {
+        //first, find best attribute to sort on (the one with the highest gain)
+        var bestAttribute = ""
+        var bestGain : Double = 0.0
+        var attributeList : [String] = []
+        if let temp = inputInstances.first {
+            for (key,_) in temp {
+                if key != "Result" && !attributeList.contains(key) {
+                    attributeList.append(key)
+                }
+            }
+        }
+        
+        for attribute in attributeList {
+            let currentGain = findAttributeGain(attributeName: attribute, currentInstances: inputInstances)
+            if(currentGain > bestGain){
+                bestGain = currentGain
+                bestAttribute = attribute
+            }
+        }
+        //bestAttribute should now be the node to generate
+        let currentNode = templatizedNode<String, Int, Int>(attributeSortedOn: bestAttribute, accessibleInstances: inputInstances, givenResultKey: "Result")
+        //generate subset for each possible value of best attribute
+        var possibleValues : [Int] = []
+        for dictionary in inputInstances{
+            if let temp = dictionary[bestAttribute]{
+                if !possibleValues.contains(temp){
+                    possibleValues.append(temp)
+                }
+            }
+        }
+        //possible values of the attribute sorted on are stored in possible values
+        for value in possibleValues {
+            //generate subset for each possible value in possibleValue
+            if let temp = currentNode.findInstances(withAttributeEqualTo: value){
+                //for each subset, if the entropy of the set == 0 (created node has all + or all - examples), fabricate a corresponding classification node, else fabricate a node for the subset by generatingDecision tree on the subset
+                if findEntropy(currentInstances: temp) == 0 {
+                    //generate a leaf node and link as child
+                    let tmp = templatizedNode<String, Int, Int>(attributeSortedOn: bestAttribute, accessibleInstances: temp, givenResultKey: "Result")
+                    //leafNode can be immediately added to the tree
+                    currentNode.addChild(node: tmp)
+                }else{
+                    if let tmp = genDecisionTree(inputInstances: temp) {
+                        currentNode.addChild(node: tmp)
+                    }
+                }
+            }
+            
+            
+            
+        }
+        
+        return nil
+    }
+    
+  
 }
 
