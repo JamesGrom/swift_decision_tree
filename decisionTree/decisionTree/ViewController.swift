@@ -116,101 +116,83 @@ class ViewController: UIViewController {
             
             //fabricate the processed values from the parsed values
             for row in parsedValues {
-                if let heightVal = Float(row["Height"] ?? "0.0"), let weightVal = Float(row["Weight"] ?? "0.0"), let resultState = row["Result"] , let fitnessIndex = Int(row["Index"] ?? "-1"), let bmiVal = Float(row["BMI"] ?? "0.0") {
-                    //initialize OneHot encoding for parsed values
+                if let heightVal = Double(row["Height"] ?? "0.0"), let weightVal = Double(row["Weight"] ?? "0.0"), let resultState = row["Result"] , let fitnessIndex = Double(row["Index"] ?? "-1"), let bmiVal = Double(row["BMI"] ?? "0.0") {
+                    //initialize integer encoding for parsed values
                     var temp : [String:Int] = [:]
-                    //8 possibilities for height classifications
-                    var i = 0;
-//                    while(i<8){
-//                        //initialize H0-H7 with nil
-//                        let tempKey = "H" + String(i)
-//                        temp[tempKey] = 0
-//                        i = i+1
-//                    }
-                    //14 possibilities for weight classifications
-                    i = 0;
-//                    while(i<14){
-//                        //initialize W0-W13 with nil
-//                        let tempKey = "W" + String(i)
-//                        temp[tempKey] = 0
-//                        i = i+1
-//                    }
-                    //8 possibilities for BMI classifications
-                    i = 0;
-//                    while(i<8){
-//                        let tempKey = "BMI" + String(i)
-//                        temp[tempKey] = 0
-//                        i = i+1
-//                    }
-                    //5 possibilities for fitness index
-                    i = 1;
-//                    while(i<6){
-//                        let tempKey = "I" + String(i)
-//                        temp[tempKey] = 0
-//                        i = i + 1
-//                    }
-
                     //set the Result state
                     if(resultState == "True"){
                         temp["Result"] = 1
                     }else{
                         temp["Result"] = 0
                     }
+                    //set the partitions for the height values
+                    var j : Double = 0.0 
+                    var upperValue: Double = 145.9 // first partition upper value = 145.9
+                    var partitionSize: Double = 5.9 //size of the partition = 5.9
+                    var numPartitions: Double = 10.0 // number of partitions 
+                    //since i is zero indexed, make sure i = numPartitions -1
+                    while(j<numPartitions){
+                        //if height is lower than upper value of partition || outside highest partition (only on last itteration)
+                        if heightVal <= upperValue || j == numPartitions - 1 {
+                            temp["Height"] = Int(j) 
+                            break // need to exit loop before value reinitialized in next itteration
+                        } 
+                        j = j + 1
+                        upperValue = upperValue + partitionSize
+                    }
+
+                    //set partitions for weight values 
+                    j = 0.0 
+                    upperValue = 61.0 //first partition upper value = 61.00
+                    partitionSize = 11.0 //size of weight partitions are 11
+                    numPartitions = 10.0 // there are 10 partitions over the weight classifier 
+                    //since j is zero indexed, make sure jmax = numPartitions - 1 
+                    while(j<numPartitions){
+                        //if height is lower than upper value of partition || outside highest partition (only on last itteration)
+                        if weightVal <= upperValue || j == numPartitions - 1 {
+                            temp["Weight"] = Int(j) 
+                            break // need to exit loop before value reinitialized in next itteration
+                        } 
+                        j = j + 1
+                        upperValue = upperValue + partitionSize
+                    }
+
+                    //set partitions for fitness values 
+                    j = 0.0
+                    // 0-0.5 , 0.5-1.5 , 1.5 - 2.5 , 2.5-3.5 , 3.5-4.5 , 4.5-5.5 
+                    upperValue = 0.5 
+                    partitionSize = 1.0
+                    numPartitions = 6.0 
+                    while(j<numPartitions){
+                        //if height is lower than upper value of partition || outside highest partition (only on last itteration)
+                        if fitnessIndex <= upperValue || j == numPartitions - 1 {
+                            temp["Fitness"] = Int(j) 
+                            break // need to exit loop before value reinitialized in next itteration
+                        } 
+                        j = j + 1
+                        upperValue = upperValue + partitionSize
+                    } 
                     
-                    //set the height state
-                    i = 0;
-                    var cutoff = Float(130)
-                    while(i<8){
-                        if heightVal < cutoff || cutoff == 190{
-                            //set the appropriate field value
-//                            let tempKey = "H" + String(i)
-//                            temp[tempKey] = 1
-                            temp["Height"] = i
-                            break
-                        }
-                        i = i+1
-                        cutoff = cutoff + 10
+                    //set partitions for bmi values 
+                    j = 0.0 
+                    upperValue = 50.0 
+                    partitionSize = 2.5
+                    numPartitions = 17
+                    while(j<numPartitions){
+                        //if height is lower than upper value of partition || outside highest partition (only on last itteration)
+                        if bmiVal <= upperValue || j == numPartitions - 1 {
+                            temp["BMI"] = Int(j) 
+                            break // need to exit loop before value reinitialized in next itteration
+                        } 
+                        j = j + 1
+                        upperValue = upperValue + partitionSize
                     }
-                    //set the weight state
-                    i = 0;
-                    cutoff = 40
-                    while(i<14){
-                        if weightVal < cutoff || cutoff == 160{
-                            //set the appropriate field value
-//                            let tempKey = "W" + String(i)
-//                            temp[tempKey] = 1
-                            temp["Weight"] = i
-                            break
-                        }
-                        i = i+1
-                        cutoff = cutoff + 10
-                    }
-                    //set the bmi State
-                    i = 0;
-                    cutoff = 10
-                    while(i<17){
-                        if bmiVal < cutoff || cutoff == 50{
-                            //set the appropriate field value
-//                            let tempKey = "BMI" + String(i)
-//                            temp[tempKey] = 1
-                            temp["BMI"] = i
-                            break
-                        }
-                        i = i+1
-                        cutoff = cutoff + 2.5
-                    }
-                    
-                    //set the fitnessIndex state
-                    temp["Fitness"] = fitnessIndex
-                    // DEPRICATED: temp [String:Int?] holds the 1 hot encoded values for the current row
-                    //add current row into processedValues
+                    print(temp)
                     processedValues.append(temp)
                 }
             }
             
-//            print(csv.namedRows)
-//            print(parsedValues)
-            print(processedValues)
+            // print(processedValues)
         } catch{
             print("catchblock triggered")
             return
@@ -253,7 +235,7 @@ class ViewController: UIViewController {
             for instance in testValues {
                 let predictedVal = predictInstanceResult(instanceDictionary: instance, decisionTreeNode: rootNode)
                 let actualVal = instance["Result"]
-                print( "Actual = " ,actualVal,"Predicted = ",predictedVal )
+                print( "Actual = " ,actualVal!,"Predicted = ",predictedVal )
                 if predictedVal == actualVal {
                     numCorrectlyPredicted = numCorrectlyPredicted + 1
                     numPredicted = numPredicted + 1
