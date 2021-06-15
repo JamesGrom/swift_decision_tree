@@ -271,6 +271,7 @@ class ViewController: UIViewController {
             print(testResultString)
             print(trainingResultString)
         }
+        runDataset2()
         
      }
     //returns array of instances (modeled as dictionaries) for which the attribute has the given attribute state
@@ -574,10 +575,204 @@ class ViewController: UIViewController {
     }
     
     func runDataset2(){
+        var parsedValues: [[String:String]] = []
+        var processedValues: [[String:Int]] = [] //values defined by appropriate grouping indeces 
         do{
             let fileURL = Bundle.main.url(forResource:"dataset2",withExtension:".csv")!;
             let csv: CSV = try CSV(url:fileURL)
-            print(csv)
+            print(csv.namedRows)
+            for(_,var row) in csv.namedRows.enumerated(){
+                //each row is an instance, add each instance to parsedValues
+                parsedValues.append(row)
+            }
+            //fabricate processed values from parsedValues 
+            for instance in parsedValues {
+                var addend: [String:Int] = [:]
+                if let age = Double(instance["age"] ?? "0.0") , 
+                let sex = Int(instance["sex"] ?? "0"), 
+                let cp = Int(instance["cp"] ?? "0"),
+                let trestbps = Double(instance["trestbps"] ?? "0.0") , 
+                let chol = Double(instance["chol"] ?? "0.0"),
+                let fbs = Int(instance["fbs"] ?? "0"),
+                let restecg = Int(instance["restecg"] ?? "0"),
+                let thalach = Double(instance["thalach"] ?? "0.0"),
+                let exang = Int(instance["exang"] ?? "0"),
+                let oldpeak = Double(instance["oldpeak"] ?? "0.0"),
+                let Result = Int(instance["Result"] ?? "111")
+                {
+                    //using only 11 metrics from the dataset 
+
+                    //first add nonPartitioned inputs 
+                    addend["sex"] = sex
+                    addend["cp"] = cp 
+                    addend["fbs"] = fbs
+                    addend["restecg"] = restecg
+                    addend["exang"] = exang
+                    addend["Result"] = Result
+                    //modify partitioned attributes 
+                    //partition age attribute
+                    var j : Double = 0.0 
+                    var upperValue: Double = 33.8 // first partition upper value = 145.9
+                    var partitionSize: Double = 4.8 //size of the partition = 5.9
+                    var numPartitions: Double = 10 // number of partitions 
+                    //since i is zero indexed, make sure i = numPartitions -1
+                    while(j<numPartitions){
+                        //if height is lower than upper value of partition || outside highest partition (only on last itteration)
+                        if age <= upperValue || j == numPartitions - 1 {
+                            addend["age"] = Int(j) 
+                            break // need to exit loop before value reinitialized in next itteration
+                        } 
+                        j = j + 1
+                        upperValue = upperValue + partitionSize
+                    }
+
+                    //partition trestbps attribute
+                    j = 0.0 
+                    upperValue = 104.6
+                    partitionSize = 10.4
+                    numPartitions = 10 
+                    //since i is zero indexed, make sure i = numPartitions -1
+                    while(j<numPartitions){
+                        //if height is lower than upper value of partition || outside highest partition (only on last itteration)
+                        if trestbps <= upperValue || j == numPartitions - 1 {
+                            addend["trestbps"] = Int(j) 
+                            break // need to exit loop before value reinitialized in next itteration
+                        } 
+                        j = j + 1
+                        upperValue = upperValue + partitionSize
+                    }
+
+                    //partition chol attribute
+                    j = 0.0 
+                    numPartitions = 8
+                    upperValue = 169.8
+                    partitionSize = 43.8
+                    //since i is zero indexed, make sure i = numPartitions -1
+                    while(j<numPartitions){
+                        //if height is lower than upper value of partition || outside highest partition (only on last itteration)
+                        if chol <= upperValue || j == numPartitions - 1 {
+                            addend["chol"] = Int(j) 
+                            break // need to exit loop before value reinitialized in next itteration
+                        } 
+                        j = j + 1
+                        upperValue = upperValue + partitionSize
+                    }
+
+                    //partition thalach attribute 
+                    j = 0.0
+                    numPartitions = 10
+                    upperValue = 84.10
+                    partitionSize = 13.1
+                    while(j<numPartitions){
+                        //if height is lower than upper value of partition || outside highest partition (only on last itteration)
+                        if thalach <= upperValue || j == numPartitions - 1 {
+                            addend["thalach"] = Int(j) 
+                            break // need to exit loop before value reinitialized in next itteration
+                        } 
+                        j = j + 1
+                        upperValue = upperValue + partitionSize
+                    }
+
+                    //partition oldpeak attribute
+                    j = 0.0 
+                    numPartitions = 9
+                    upperValue = 0.62
+                    partitionSize = 0.62
+                    while(j<numPartitions){
+                        //if height is lower than upper value of partition || outside highest partition (only on last itteration)
+                        if oldpeak <= upperValue || j == numPartitions - 1 {
+                            addend["oldpeak"] = Int(j) 
+                            break // need to exit loop before value reinitialized in next itteration
+                        } 
+                        j = j + 1
+                        upperValue = upperValue + partitionSize
+                    }
+                    processedValues.append(addend)
+                }
+            }
+            //input data has been parsed and processed, now decisionTree can be constructed 
+            print(processedValues)
+            //need to shuffle the values, since the results are sorted from + results to - results 
+            processedValues.shuffle()
+            var trainingValues : [[String:Int]] = []
+            var testValues : [[String:Int]] = []
+            //there are 303 available instances of data 
+            print(processedValues.count)
+            //construct the trainingValues from first 230 of dataset2
+            var i = 0 
+            while(i<230){
+                trainingValues.append(processedValues[i])
+                i = i + 1
+            }
+            //construct the testValues from last 73 of dataset2
+            i = 230 
+            while(i<303){
+                testValues.append(processedValues[i])
+                i = i + 1
+            }
+
+            //generate decision tree using training value set 
+            var tempNode:simpleNode?
+            //update the global attributeList
+            globalAttributeList = [] //clear the attributeList from prior execution
+            globalAttributeList.append("age")
+            globalAttributeList.append("sex")
+            globalAttributeList.append("cp")
+            globalAttributeList.append("trestbps")
+            globalAttributeList.append("chol")
+            globalAttributeList.append("fbs")
+            globalAttributeList.append("restecg")
+            globalAttributeList.append("thalach")
+            globalAttributeList.append("exang")
+            globalAttributeList.append("oldpeak")
+            tempNode = generateDecisionTree(inputInstances:trainingValues,usedAttributes:[])
+            
+            if let rootNode = tempNode {
+            var numCorrectlyPredicted = 0;
+            var numIncorrectlyPredicted = 0;
+            var numPredicted = 0;
+            for instance in testValues {
+                let predictedVal = predictInstanceResult(instanceDictionary: instance, decisionTreeNode: rootNode)
+                let actualVal = instance["Result"]
+                print( "Actual = " ,actualVal!,"Predicted = ",predictedVal )
+                if predictedVal == actualVal {
+                    numCorrectlyPredicted = numCorrectlyPredicted + 1
+                    numPredicted = numPredicted + 1
+                    print("Correct!" , numCorrectlyPredicted , "/" , numPredicted , "Predicted correctly")
+                }else{
+                    numIncorrectlyPredicted = numIncorrectlyPredicted + 1
+                    numPredicted = numPredicted + 1
+                    print("Incorrect" , numCorrectlyPredicted , "/" , numPredicted , "Predicted correctly")
+                }
+            }
+            let testResultString = String("results on test set: Accuracy = ") + String(numCorrectlyPredicted) + String(" / ") + String(numPredicted)
+//            print("results on test set: Accuracy = ", numCorrectlyPredicted  , "/" , numPredicted)
+            
+            numPredicted = 0;
+            numCorrectlyPredicted = 0;
+            numIncorrectlyPredicted = 0;
+            //test on training set
+            for instance in trainingValues {
+                let predictedVal = predictInstanceResult(instanceDictionary: instance, decisionTreeNode: rootNode)
+                let actualVal = instance["Result"]
+                print( "Actual = " ,actualVal!,"Predicted = ",predictedVal )
+                if predictedVal == actualVal {
+                    numCorrectlyPredicted = numCorrectlyPredicted + 1
+                    numPredicted = numPredicted + 1
+                    print("Correct!" , numCorrectlyPredicted , "/" , numPredicted , "Predicted correctly")
+                }else{
+                    numIncorrectlyPredicted = numIncorrectlyPredicted + 1
+                    numPredicted = numPredicted + 1
+                    print("Incorrect" , numCorrectlyPredicted , "/" , numPredicted , "Predicted correctly")
+                }
+            }
+            let trainingResultString = String("results on training set: Accuracy = ") + String(numCorrectlyPredicted) + String(" / ") + String(numPredicted)
+            print(testResultString)
+            print(trainingResultString)
+        }
+
+
+            
         }catch{
             print("error processing dataset2")
         }
